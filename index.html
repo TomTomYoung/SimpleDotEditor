@@ -1673,10 +1673,78 @@
       }
 
       // グリッドデータをリサイズする関数（既存データを保持）
+      // function resizeGridData(windowState, newRowCount, newColCount) {
+      //   const oldGridData = windowState.gridData;
+      //   const oldRowCount = windowState.rowCount;
+      //   const oldColCount = windowState.colCount;
+
+      //   // 新しいグリッドデータを作成
+      //   const newGridData = new Array(newRowCount);
+
+      //   for (let y = 0; y < newRowCount; y++) {
+      //     newGridData[y] = new Array(newColCount);
+
+      //     for (let x = 0; x < newColCount; x++) {
+      //       if (y < oldRowCount && x < oldColCount) {
+      //         // 既存データが存在する場合はそれを使用
+      //         newGridData[y][x] = { ...oldGridData[y][x] };
+      //       } else {
+      //         // 新しいセルには白色を設定
+      //         newGridData[y][x] = { r: 255, g: 255, b: 255, a: 255 };
+      //       }
+      //     }
+      //   }
+
+      //   // 更新したグリッドデータを返す
+      //   return newGridData;
+      // }
+
+      // グリッドデータをリサイズする関数（既存データを保持）
+      // function resizeGridData(windowState, newRowCount, newColCount) {
+      //   const oldGridData = windowState.gridData;
+      //   // const oldRowCount = windowState.rowCount;
+      //   // const oldColCount = windowState.colCount;
+      //   const oldRowCount = oldGridData.length;
+      //   const oldColCount = oldGridData[0].length;
+
+      //   // 新しいグリッドデータを作成
+      //   const newGridData = new Array(newRowCount);
+
+      //   for (let y = 0; y < newRowCount; y++) {
+      //     newGridData[y] = new Array(newColCount);
+
+      //     for (let x = 0; x < newColCount; x++) {
+      //       // 既存データが存在し、かつ有効な場合はそれを使用
+      //       if (
+      //         y < oldRowCount &&
+      //         x < oldColCount &&
+      //         oldGridData[y] &&
+      //         oldGridData[y][x]
+      //       ) {
+      //         console.log(oldGridData[y][x]);
+
+      //         newGridData[y][x] = {
+      //           r: oldGridData[y][x].r || 255,
+      //           g: oldGridData[y][x].g || 255,
+      //           b: oldGridData[y][x].b || 255,
+      //           a: oldGridData[y][x].a || 255,
+      //         };
+      //       } else {
+      //         // 新しいセルまたは無効なデータには白色を設定
+      //         newGridData[y][x] = { r: 255, g: 255, b: 255, a: 255 };
+      //       }
+      //     }
+      //   }
+
+      //   // 更新したグリッドデータを返す
+      //   return newGridData;
+      // }
+
+      // グリッドデータをリサイズする関数（既存データを保持）
       function resizeGridData(windowState, newRowCount, newColCount) {
         const oldGridData = windowState.gridData;
-        const oldRowCount = windowState.rowCount;
-        const oldColCount = windowState.colCount;
+        const oldRowCount = oldGridData.length;
+        const oldColCount = oldGridData[0] ? oldGridData[0].length : 0;
 
         // 新しいグリッドデータを作成
         const newGridData = new Array(newRowCount);
@@ -1685,11 +1753,25 @@
           newGridData[y] = new Array(newColCount);
 
           for (let x = 0; x < newColCount; x++) {
-            if (y < oldRowCount && x < oldColCount) {
-              // 既存データが存在する場合はそれを使用
-              newGridData[y][x] = { ...oldGridData[y][x] };
+            // 既存データが存在し、かつ有効な場合はそれを使用
+            if (
+              y < oldRowCount &&
+              x < oldColCount &&
+              oldGridData[y] &&
+              oldGridData[y][x]
+            ) {
+              newGridData[y][x] = {
+                r:
+                  oldGridData[y][x].r !== undefined ? oldGridData[y][x].r : 255,
+                g:
+                  oldGridData[y][x].g !== undefined ? oldGridData[y][x].g : 255,
+                b:
+                  oldGridData[y][x].b !== undefined ? oldGridData[y][x].b : 255,
+                a:
+                  oldGridData[y][x].a !== undefined ? oldGridData[y][x].a : 255,
+              };
             } else {
-              // 新しいセルには白色を設定
+              // 新しいセルまたは無効なデータには白色を設定
               newGridData[y][x] = { r: 255, g: 255, b: 255, a: 255 };
             }
           }
@@ -1806,6 +1888,8 @@
             newColCount
           );
         }
+
+        console.log(windowState.gridData);
 
         // キャンバスを再初期化
         // Gridサイズとキャンバスは一心同体
