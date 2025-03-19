@@ -279,6 +279,8 @@
         currentTool: "cell", // 'cell', 'pencil', 'eraser'
       };
 
+      //#region ウィンドウ
+
       // 新規ウィンドウ作成関数
       function createNewWindow() {
         const windowId = appState.windowCount++;
@@ -324,6 +326,7 @@
           { id: "mode", name: "表示モード" },
           { id: "json", name: "JSON入出力" },
           { id: "image", name: "画像入力" },
+          { id: "render", name: "レンダリング" },
         ];
 
         panelItems.forEach((item) => {
@@ -366,6 +369,8 @@
         const canvasDiv = document.createElement("div");
         canvasDiv.className = "canvas-div";
         canvasDiv.id = `canvas-div-${windowId}`;
+
+        //#region グリッド設定パネル
 
         // グリッド設定パネルの作成
         const gridPanel = document.createElement("div");
@@ -430,6 +435,10 @@
         paramGroup.appendChild(applyBtn);
         gridPanel.appendChild(paramGroup);
 
+        //#endregion グリッド設定パネル
+
+        //#region 表示モードパネル
+
         // 表示モードパネルの作成
         const modePanel = document.createElement("div");
         modePanel.className = "panel mode-panel";
@@ -492,6 +501,25 @@
         });
 
         modePanel.appendChild(modeGroup);
+
+        // モード適用アクション部分の作成
+        const modeActions = document.createElement("div");
+        modeActions.className = "mode-actions";
+
+        // モードを適用するボタン
+        const applyModeBtn = document.createElement("button");
+        applyModeBtn.className = "apply-mode-btn";
+        applyModeBtn.textContent = "モードを適用";
+        applyModeBtn.addEventListener("click", () =>
+          applyDisplayMode(windowId)
+        );
+
+        modeActions.appendChild(applyModeBtn);
+        modePanel.appendChild(modeActions);
+
+        //#endregion 表示モードパネル
+
+        //#region JSON入出力パネル
 
         // JSON入出力パネルの作成
         const jsonPanel = document.createElement("div");
@@ -569,6 +597,10 @@
 
         jsonPanel.appendChild(jsonInputArea);
         jsonPanel.appendChild(jsonOutputArea);
+
+        //#endregion JSON入出力パネル
+
+        //#region 画像入力パネル
 
         // 画像入力パネルの作成
         const imagePanel = document.createElement("div");
@@ -976,6 +1008,237 @@
         imagePanel.appendChild(imageOptionsArea);
         imagePanel.appendChild(convertBtn);
 
+        //#endregion 画像入力パネル
+
+        //#region レンダリングパネル
+
+        // レンダリングパネルの作成（createNewWindow関数内、imagePanel の後に追加）
+        const renderPanel = document.createElement("div");
+        renderPanel.className = "panel render-panel hidden-panel";
+        renderPanel.id = `render-panel-${windowId}`;
+
+        // パネルヘッダー
+        const renderPanelHeader = document.createElement("div");
+        renderPanelHeader.className = "panel-header";
+        renderPanelHeader.textContent = "レンダリング";
+
+        const renderPanelClose = document.createElement("div");
+        renderPanelClose.className = "panel-close";
+        renderPanelClose.textContent = "x";
+        renderPanelClose.addEventListener("click", () => {
+          document
+            .getElementById(`render-panel-${windowId}`)
+            .classList.add("hidden-panel");
+        });
+
+        renderPanelHeader.appendChild(renderPanelClose);
+        renderPanel.appendChild(renderPanelHeader);
+
+        // レンダリング方式選択
+        const renderMethodArea = document.createElement("div");
+        renderMethodArea.className = "render-method-area";
+        renderMethodArea.style.marginBottom = "15px";
+
+        const renderMethodLabel = document.createElement("div");
+        renderMethodLabel.textContent = "レンダリング方式:";
+        renderMethodLabel.style.marginBottom = "5px";
+
+        const renderMethodSelect = document.createElement("select");
+        renderMethodSelect.id = `render-method-${windowId}`;
+        renderMethodSelect.style.width = "100%";
+        renderMethodSelect.style.padding = "5px";
+        renderMethodSelect.style.marginBottom = "10px";
+
+        // レンダリング方式オプション
+        const renderMethods = [
+          { value: "pixel", label: "セルを1pixelとしてレンダリング" },
+          { value: "grid", label: "グリッドサイズで実寸レンダリング" },
+        ];
+
+        renderMethods.forEach((method) => {
+          const option = document.createElement("option");
+          option.value = method.value;
+          option.textContent = method.label;
+          renderMethodSelect.appendChild(option);
+        });
+
+        renderMethodArea.appendChild(renderMethodLabel);
+        renderMethodArea.appendChild(renderMethodSelect);
+
+        // スケール設定（ピクセルモード用）
+        const pixelScaleArea = document.createElement("div");
+        pixelScaleArea.id = `pixel-scale-area-${windowId}`;
+        pixelScaleArea.className = "scale-options";
+
+        const pixelScaleLabel = document.createElement("div");
+        pixelScaleLabel.textContent = "拡大倍率:";
+        pixelScaleLabel.style.marginBottom = "5px";
+
+        const pixelScaleInput = document.createElement("input");
+        pixelScaleInput.type = "number";
+        pixelScaleInput.id = `pixel-scale-${windowId}`;
+        pixelScaleInput.style.width = "100%";
+        pixelScaleInput.style.padding = "5px";
+        pixelScaleInput.min = 1;
+        pixelScaleInput.max = 32;
+        pixelScaleInput.value = 8;
+        pixelScaleInput.step = 1;
+
+        pixelScaleArea.appendChild(pixelScaleLabel);
+        pixelScaleArea.appendChild(pixelScaleInput);
+
+        // グリッドサイズ設定エリア（グリッドモード用）
+        const gridSizeArea = document.createElement("div");
+        gridSizeArea.id = `grid-size-area-${windowId}`;
+        gridSizeArea.className = "scale-options";
+        gridSizeArea.style.display = "none";
+
+        const gridWidthLabel = document.createElement("div");
+        gridWidthLabel.textContent = "出力幅:";
+        gridWidthLabel.style.marginBottom = "5px";
+
+        const gridWidthInput = document.createElement("input");
+        gridWidthInput.type = "number";
+        gridWidthInput.id = `grid-width-${windowId}`;
+        gridWidthInput.style.width = "100%";
+        gridWidthInput.style.padding = "5px";
+        gridWidthInput.min = 10;
+        gridWidthInput.max = 4096;
+        gridWidthInput.value = 320;
+        gridWidthInput.step = 1;
+
+        const gridHeightLabel = document.createElement("div");
+        gridHeightLabel.textContent = "出力高さ:";
+        gridHeightLabel.style.marginBottom = "5px";
+        gridHeightLabel.style.marginTop = "10px";
+
+        const gridHeightInput = document.createElement("input");
+        gridHeightInput.type = "number";
+        gridHeightInput.id = `grid-height-${windowId}`;
+        gridHeightInput.style.width = "100%";
+        gridHeightInput.style.padding = "5px";
+        gridHeightInput.min = 10;
+        gridHeightInput.max = 4096;
+        gridHeightInput.value = 240;
+        gridHeightInput.step = 1;
+
+        gridSizeArea.appendChild(gridWidthLabel);
+        gridSizeArea.appendChild(gridWidthInput);
+        gridSizeArea.appendChild(gridHeightLabel);
+        gridSizeArea.appendChild(gridHeightInput);
+
+        // その他のオプション
+        const renderOptionsArea = document.createElement("div");
+        renderOptionsArea.className = "render-options-area";
+        renderOptionsArea.style.marginTop = "15px";
+        renderOptionsArea.style.marginBottom = "15px";
+
+        // グリッド線表示オプション
+        const showGridLinesOption = document.createElement("div");
+        showGridLinesOption.className = "option-item";
+        showGridLinesOption.style.marginBottom = "10px";
+
+        const showGridLinesCheckbox = document.createElement("input");
+        showGridLinesCheckbox.type = "checkbox";
+        showGridLinesCheckbox.id = `show-grid-lines-${windowId}`;
+        showGridLinesCheckbox.checked = false;
+
+        const showGridLinesLabel = document.createElement("label");
+        showGridLinesLabel.htmlFor = `show-grid-lines-${windowId}`;
+        showGridLinesLabel.textContent = "グリッド線を表示";
+        showGridLinesLabel.style.marginLeft = "5px";
+
+        showGridLinesOption.appendChild(showGridLinesCheckbox);
+        showGridLinesOption.appendChild(showGridLinesLabel);
+
+        // 背景透明オプション
+        const transparentBgOption = document.createElement("div");
+        transparentBgOption.className = "option-item";
+        transparentBgOption.style.marginBottom = "10px";
+
+        const transparentBgCheckbox = document.createElement("input");
+        transparentBgCheckbox.type = "checkbox";
+        transparentBgCheckbox.id = `transparent-bg-${windowId}`;
+        transparentBgCheckbox.checked = true;
+
+        const transparentBgLabel = document.createElement("label");
+        transparentBgLabel.htmlFor = `transparent-bg-${windowId}`;
+        transparentBgLabel.textContent = "背景を透明に";
+        transparentBgLabel.style.marginLeft = "5px";
+
+        transparentBgOption.appendChild(transparentBgCheckbox);
+        transparentBgOption.appendChild(transparentBgLabel);
+
+        renderOptionsArea.appendChild(showGridLinesOption);
+        renderOptionsArea.appendChild(transparentBgOption);
+
+        // レンダリングボタン
+        const renderBtn = document.createElement("button");
+        renderBtn.className = "apply-btn";
+        renderBtn.textContent = "レンダリング実行";
+        renderBtn.style.width = "100%";
+        renderBtn.addEventListener("click", () => renderGrid(windowId));
+
+        // プレビューエリア
+        const renderPreviewArea = document.createElement("div");
+        renderPreviewArea.id = `render-preview-${windowId}`;
+        renderPreviewArea.style.marginTop = "15px";
+        renderPreviewArea.style.textAlign = "center";
+        renderPreviewArea.style.display = "none";
+        renderPreviewArea.style.border = "1px solid #ddd";
+        renderPreviewArea.style.padding = "10px";
+        renderPreviewArea.style.backgroundColor = "#f9f9f9";
+
+        // ダウンロードボタン
+        const downloadBtnArea = document.createElement("div");
+        downloadBtnArea.style.marginTop = "15px";
+        downloadBtnArea.style.display = "none";
+        downloadBtnArea.id = `download-area-${windowId}`;
+
+        const downloadBtn = document.createElement("button");
+        downloadBtn.className = "apply-btn";
+        downloadBtn.textContent = "画像をダウンロード";
+        downloadBtn.style.width = "100%";
+        downloadBtn.id = `download-btn-${windowId}`;
+        downloadBtn.addEventListener("click", () =>
+          downloadRenderedImage(windowId)
+        );
+
+        downloadBtnArea.appendChild(downloadBtn);
+
+        // 変換方式による表示切り替え
+        renderMethodSelect.addEventListener("change", function () {
+          const methodValue = this.value;
+
+          // スケールオプション表示切替
+          if (methodValue === "pixel") {
+            document.getElementById(
+              `pixel-scale-area-${windowId}`
+            ).style.display = "block";
+            document.getElementById(
+              `grid-size-area-${windowId}`
+            ).style.display = "none";
+          } else {
+            document.getElementById(
+              `pixel-scale-area-${windowId}`
+            ).style.display = "none";
+            document.getElementById(
+              `grid-size-area-${windowId}`
+            ).style.display = "block";
+          }
+        });
+
+        // パネルに要素を追加
+        renderPanel.appendChild(renderMethodArea);
+        renderPanel.appendChild(pixelScaleArea);
+        renderPanel.appendChild(gridSizeArea);
+        renderPanel.appendChild(renderOptionsArea);
+        renderPanel.appendChild(renderBtn);
+        renderPanel.appendChild(renderPreviewArea);
+        renderPanel.appendChild(downloadBtnArea);
+
+        //#endregion
+
         // ウィンドウに要素を追加
         windowDiv.appendChild(header);
         windowDiv.appendChild(canvasDiv);
@@ -983,6 +1246,7 @@
         windowDiv.appendChild(modePanel);
         windowDiv.appendChild(jsonPanel);
         windowDiv.appendChild(imagePanel);
+        windowDiv.appendChild(renderPanel);
 
         // ドキュメントにウィンドウを追加
         document.body.appendChild(windowDiv);
@@ -1073,15 +1337,26 @@
         // });
 
         // ウィンドウ外のクリックでドロップダウンを閉じる
+        // window.addEventListener("click", function (event) {
+        //   if (!event.target.matches(".dropdown-btn")) {
+        //     const dropdowns =
+        //       document.getElementsByClassName("dropdown-content");
+        //     for (let i = 0; i < dropdowns.length; i++) {
+        //       const openDropdown = dropdowns[i];
+        //       if (openDropdown.classList.contains("show")) {
+        //         openDropdown.classList.remove("show");
+        //       }
+        //     }
+        //   }
+        // });
+
+        // ドロップダウンを閉じる処理（イベント委任を利用）
         window.addEventListener("click", function (event) {
           if (!event.target.matches(".dropdown-btn")) {
             const dropdowns =
               document.getElementsByClassName("dropdown-content");
             for (let i = 0; i < dropdowns.length; i++) {
-              const openDropdown = dropdowns[i];
-              if (openDropdown.classList.contains("show")) {
-                openDropdown.classList.remove("show");
-              }
+              dropdowns[i].classList.remove("show");
             }
           }
         });
@@ -1396,6 +1671,10 @@
       function getWindowState(windowId) {
         return appState.windows.find((w) => w.id === windowId);
       }
+
+      //#endregion ウィンドウ
+
+      //#region グリッド、キャンバス
 
       // グリッドデータの初期化
       function initGridData(windowState) {
@@ -1963,6 +2242,79 @@
         drawGrid(windowState, ctx);
       }
 
+      // 表示モードをグリッドデータに適用する関数
+      function applyDisplayMode(windowId) {
+        const windowState = getWindowState(windowId);
+        if (!windowState) return;
+
+        const { gridData, rowCount, colCount, mode } = windowState;
+        const canvas = document.getElementById(`grid-canvas-${windowId}`);
+        const ctx = canvas.getContext("2d");
+
+        // 現在のモードに基づいて各セルの色を変換
+        for (let y = 0; y < rowCount; y++) {
+          for (let x = 0; x < colCount; x++) {
+            const cell = gridData[y][x];
+
+            switch (mode) {
+              case "binary":
+                // 2値モード適用
+                const brightness = (cell.r + cell.g + cell.b) / 3;
+                if (brightness > 127) {
+                  // 白
+                  gridData[y][x] = { r: 255, g: 255, b: 255, a: 255 };
+                } else {
+                  // 黒
+                  gridData[y][x] = { r: 0, g: 0, b: 0, a: 255 };
+                }
+                break;
+
+              case "grayscale":
+                // グレースケール適用
+                const gray = Math.round((cell.r + cell.g + cell.b) / 3);
+                gridData[y][x] = { r: gray, g: gray, b: gray, a: cell.a };
+                break;
+
+              // カラーモードとパレットモードは変更なし
+              case "color":
+              case "palette":
+              default:
+                // 何もしない（既存のデータをそのまま使用）
+                break;
+            }
+          }
+        }
+
+        // グリッドを再描画
+        drawGrid(windowState, ctx);
+
+        // カラーモードに戻す（データを変更したので表示も一致させる）
+        setGridMode(windowId, "color");
+
+        // 適用完了メッセージ
+        alert(`${getModeName(mode)}モードを適用しました`);
+      }
+
+      // モード名を取得する関数
+      function getModeName(mode) {
+        switch (mode) {
+          case "binary":
+            return "2値";
+          case "grayscale":
+            return "グレースケール";
+          case "color":
+            return "カラー";
+          case "palette":
+            return "パレット";
+          default:
+            return mode;
+        }
+      }
+
+      //#endregion グリッド、キャンバス
+
+      //#region ツール
+
       // ツールボタンのイベントハンドラ
       function setupToolButtons() {
         const toolButtons = document.querySelectorAll(".tool-btn");
@@ -1994,19 +2346,9 @@
         });
       }
 
-      // 新規グリッドボタンにイベントリスナーを追加
-      document
-        .getElementById("newGridButton")
-        .addEventListener("click", createNewWindow);
+      //#endregion ツール
 
-      // ツールボタンのセットアップ
-      setupToolButtons();
-
-      // カラーピッカーのセットアップ
-      setupColorPicker();
-
-      // 初期ウィンドウを作成
-      createNewWindow();
+      //#region JSON入出力パネル
 
       // JSON入出力関数
       function exportGridToJson(windowId) {
@@ -2025,22 +2367,108 @@
         document.getElementById(`json-output-${windowId}`).value = jsonText;
       }
 
+      // function importJsonToGrid(windowId) {
+      //   const windowState = getWindowState(windowId);
+      //   if (!windowState) return;
+
+      //   const jsonInput = document.getElementById(
+      //     `json-input-${windowId}`
+      //   ).value;
+      //   try {
+      //     const jsonData = JSON.parse(jsonInput);
+
+      //     // 必要なプロパティがあるか確認
+      //     if (!jsonData.rowCount || !jsonData.colCount || !jsonData.gridData) {
+      //       throw new Error("JSONデータに必要なプロパティがありません");
+      //     }
+
+      //     // ウィンドウの状態を更新
+      //     windowState.rowCount = jsonData.rowCount;
+      //     windowState.colCount = jsonData.colCount;
+      //     windowState.cellWidth = jsonData.cellWidth || windowState.cellWidth;
+      //     windowState.cellHeight =
+      //       jsonData.cellHeight || windowState.cellHeight;
+      //     windowState.gridWidth = windowState.colCount * windowState.cellWidth;
+      //     windowState.gridHeight =
+      //       windowState.rowCount * windowState.cellHeight;
+
+      //     // グリッドデータを設定
+      //     windowState.gridData = jsonData.gridData;
+
+      //     // 入力フィールドの値を更新
+      //     document.getElementById(`rowCount-${windowId}`).value =
+      //       windowState.rowCount;
+      //     document.getElementById(`colCount-${windowId}`).value =
+      //       windowState.colCount;
+      //     document.getElementById(`cellWidth-${windowId}`).value =
+      //       windowState.cellWidth;
+      //     document.getElementById(`cellHeight-${windowId}`).value =
+      //       windowState.cellHeight;
+      //     document.getElementById(`gridWidth-${windowId}`).value =
+      //       windowState.gridWidth;
+      //     document.getElementById(`gridHeight-${windowId}`).value =
+      //       windowState.gridHeight;
+
+      //     // キャンバスを再初期化
+      //     initGridCanvas(windowState);
+
+      //     alert("JSONデータからグリッドを正常に作成しました");
+      //   } catch (error) {
+      //     alert(`JSONデータの読み込みエラー: ${error.message}`);
+      //     console.error("JSONインポートエラー:", error);
+      //   }
+      // }
+
+      // JSON の構造と各セルの値を検証する関数
+      function validateJsonGridData(jsonData) {
+        if (typeof jsonData !== "object" || jsonData === null) return false;
+        if (
+          typeof jsonData.rowCount !== "number" ||
+          typeof jsonData.colCount !== "number"
+        )
+          return false;
+        if (
+          !Array.isArray(jsonData.gridData) ||
+          jsonData.gridData.length !== jsonData.rowCount
+        )
+          return false;
+
+        for (const row of jsonData.gridData) {
+          if (!Array.isArray(row) || row.length !== jsonData.colCount)
+            return false;
+          for (const cell of row) {
+            if (typeof cell !== "object" || cell === null) return false;
+            // 各色成分が0～255の数値かチェック
+            if (typeof cell.r !== "number" || cell.r < 0 || cell.r > 255)
+              return false;
+            if (typeof cell.g !== "number" || cell.g < 0 || cell.g > 255)
+              return false;
+            if (typeof cell.b !== "number" || cell.b < 0 || cell.b > 255)
+              return false;
+            if (typeof cell.a !== "number" || cell.a < 0 || cell.a > 255)
+              return false;
+          }
+        }
+        return true;
+      }
+
+      // 改善後の JSON インポート関数
       function importJsonToGrid(windowId) {
         const windowState = getWindowState(windowId);
         if (!windowState) return;
 
-        const jsonInput = document.getElementById(
-          `json-input-${windowId}`
-        ).value;
+        const jsonInput = document
+          .getElementById(`json-input-${windowId}`)
+          .value.trim();
         try {
           const jsonData = JSON.parse(jsonInput);
 
-          // 必要なプロパティがあるか確認
-          if (!jsonData.rowCount || !jsonData.colCount || !jsonData.gridData) {
-            throw new Error("JSONデータに必要なプロパティがありません");
+          // 入力検証
+          if (!validateJsonGridData(jsonData)) {
+            throw new Error("JSONデータの形式が正しくありません");
           }
 
-          // ウィンドウの状態を更新
+          // 安全な値だけを採用（不要なプロパティは無視）
           windowState.rowCount = jsonData.rowCount;
           windowState.colCount = jsonData.colCount;
           windowState.cellWidth = jsonData.cellWidth || windowState.cellWidth;
@@ -2049,11 +2477,9 @@
           windowState.gridWidth = windowState.colCount * windowState.cellWidth;
           windowState.gridHeight =
             windowState.rowCount * windowState.cellHeight;
+          windowState.gridData = jsonData.gridData; // 検証済みのデータ
 
-          // グリッドデータを設定
-          windowState.gridData = jsonData.gridData;
-
-          // 入力フィールドの値を更新
+          // 入力フィールドの更新（必要なら）
           document.getElementById(`rowCount-${windowId}`).value =
             windowState.rowCount;
           document.getElementById(`colCount-${windowId}`).value =
@@ -2067,7 +2493,7 @@
           document.getElementById(`gridHeight-${windowId}`).value =
             windowState.gridHeight;
 
-          // キャンバスを再初期化
+          // キャンバス再初期化
           initGridCanvas(windowState);
 
           alert("JSONデータからグリッドを正常に作成しました");
@@ -2076,6 +2502,10 @@
           console.error("JSONインポートエラー:", error);
         }
       }
+
+      //#endregion JSON入出力パネル
+
+      //#region 画像入出力パネル
 
       // 画像入力関数
       function setupImageHandlers(windowId) {
@@ -2195,14 +2625,71 @@
       }
 
       // ファイル処理関数
+      // function handleFiles(files, windowId) {
+      //   if (files.length === 0) return;
+
+      //   const file = files[0];
+      //   const imageType = /^image\//;
+
+      //   if (!imageType.test(file.type)) {
+      //     alert("画像ファイルを選択してください");
+      //     return;
+      //   }
+
+      //   const reader = new FileReader();
+      //   reader.onload = function (e) {
+      //     const previewArea = document.getElementById(
+      //       `image-preview-${windowId}`
+      //     );
+      //     previewArea.innerHTML = "";
+      //     previewArea.style.display = "block";
+
+      //     const img = new Image();
+      //     img.src = e.target.result;
+      //     img.id = `preview-img-${windowId}`;
+      //     img.style.maxWidth = "100%";
+      //     img.style.maxHeight = "150px";
+      //     img.style.border = "1px solid #ddd";
+
+      //     previewArea.appendChild(img);
+
+      //     // 画像データをウィンドウ状態に保存
+      //     const windowState = getWindowState(windowId);
+      //     if (windowState) {
+      //       windowState.imageData = {
+      //         src: e.target.result,
+      //         originalImage: img,
+      //       };
+
+      //       // 画像の読み込みが完了したら情報を表示
+      //       img.onload = function () {
+      //         const infoText = document.createElement("div");
+      //         infoText.innerHTML =
+      //           `元画像サイズ: ${img.naturalWidth} x ${img.naturalHeight}px<br>` +
+      //           `グリッドサイズ: ${windowState.colCount} x ${windowState.rowCount}セル`;
+      //         previewArea.appendChild(infoText);
+      //       };
+      //     }
+      //   };
+
+      //   reader.readAsDataURL(file);
+      // }
+
       function handleFiles(files, windowId) {
         if (files.length === 0) return;
 
         const file = files[0];
         const imageType = /^image\//;
+        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB の上限
 
         if (!imageType.test(file.type)) {
           alert("画像ファイルを選択してください");
+          return;
+        }
+        if (file.size > MAX_FILE_SIZE) {
+          alert(
+            "ファイルサイズが大きすぎます。5MB以下の画像を選択してください"
+          );
           return;
         }
 
@@ -2211,7 +2698,7 @@
           const previewArea = document.getElementById(
             `image-preview-${windowId}`
           );
-          previewArea.innerHTML = "";
+          previewArea.innerHTML = ""; // innerHTML ではなく、必要な場合は textContent や DOM 操作で安全に更新
           previewArea.style.display = "block";
 
           const img = new Image();
@@ -2223,7 +2710,6 @@
 
           previewArea.appendChild(img);
 
-          // 画像データをウィンドウ状態に保存
           const windowState = getWindowState(windowId);
           if (windowState) {
             windowState.imageData = {
@@ -2231,11 +2717,10 @@
               originalImage: img,
             };
 
-            // 画像の読み込みが完了したら情報を表示
             img.onload = function () {
               const infoText = document.createElement("div");
-              infoText.innerHTML =
-                `元画像サイズ: ${img.naturalWidth} x ${img.naturalHeight}px<br>` +
+              infoText.textContent =
+                `元画像サイズ: ${img.naturalWidth} x ${img.naturalHeight}px\n` +
                 `グリッドサイズ: ${windowState.colCount} x ${windowState.rowCount}セル`;
               previewArea.appendChild(infoText);
             };
@@ -3082,6 +3567,294 @@
 
         return { h, s, b: v };
       }
+
+      //#endregion 画像入出力パネル
+
+      //#region レンダリングパネル
+
+      // レンダリング関数
+      function renderGrid(windowId) {
+        const windowState = getWindowState(windowId);
+        if (!windowState) return;
+
+        const {
+          gridData,
+          rowCount,
+          colCount,
+          cellWidth,
+          cellHeight,
+          gridLines,
+        } = windowState;
+
+        // レンダリング方式を取得
+        const renderMethod = document.getElementById(
+          `render-method-${windowId}`
+        ).value;
+
+        // グリッド線表示オプション
+        const showGridLines = document.getElementById(
+          `show-grid-lines-${windowId}`
+        ).checked;
+
+        // 背景透明オプション
+        const transparentBg = document.getElementById(
+          `transparent-bg-${windowId}`
+        ).checked;
+
+        // プレビューエリアをクリア
+        const previewArea = document.getElementById(
+          `render-preview-${windowId}`
+        );
+        previewArea.innerHTML = "";
+        previewArea.style.display = "block";
+
+        // ダウンロードエリアを表示
+        document.getElementById(`download-area-${windowId}`).style.display =
+          "block";
+
+        // 新しいキャンバスを作成
+        const canvas = document.createElement("canvas");
+        canvas.id = `render-canvas-${windowId}`;
+
+        let pixelSize = 1;
+
+        if (renderMethod === "pixel") {
+          // セルを1pxとしてレンダリング
+          const scale =
+            parseInt(
+              document.getElementById(`pixel-scale-${windowId}`).value
+            ) || 8;
+          pixelSize = scale;
+
+          canvas.width = colCount * scale;
+          canvas.height = rowCount * scale;
+        } else {
+          // グリッドサイズで実寸レンダリング
+          const outputWidth =
+            parseInt(document.getElementById(`grid-width-${windowId}`).value) ||
+            320;
+          const outputHeight =
+            parseInt(
+              document.getElementById(`grid-height-${windowId}`).value
+            ) || 240;
+
+          canvas.width = outputWidth;
+          canvas.height = outputHeight;
+        }
+
+        // キャンバスのスタイル設定
+        canvas.style.maxWidth = "100%";
+        canvas.style.maxHeight = "400px";
+        canvas.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
+
+        // キャンバスをDOMに追加
+        previewArea.appendChild(canvas);
+
+        // キャンバスのコンテキスト取得
+        const ctx = canvas.getContext("2d");
+
+        // 背景をクリア
+        if (!transparentBg) {
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        if (renderMethod === "pixel") {
+          // セルを1pxとして拡大レンダリング
+          renderPixelMethod(
+            ctx,
+            gridData,
+            rowCount,
+            colCount,
+            pixelSize,
+            showGridLines
+          );
+        } else {
+          // グリッドサイズで実寸レンダリング
+          renderGridMethod(
+            ctx,
+            gridData,
+            rowCount,
+            colCount,
+            canvas.width,
+            canvas.height,
+            showGridLines
+          );
+        }
+
+        // 情報表示
+        const infoDiv = document.createElement("div");
+        infoDiv.style.marginTop = "10px";
+        infoDiv.style.fontSize = "12px";
+        infoDiv.textContent = `レンダリングサイズ: ${canvas.width} x ${canvas.height}px`;
+        previewArea.appendChild(infoDiv);
+
+        // windowStateにレンダリング情報を保存
+        windowState.renderData = {
+          canvas: canvas,
+          method: renderMethod,
+        };
+      }
+
+      // ピクセル方式レンダリング
+      function renderPixelMethod(
+        ctx,
+        gridData,
+        rowCount,
+        colCount,
+        pixelSize,
+        showGridLines
+      ) {
+        // グリッドデータの描画
+        for (let y = 0; y < rowCount; y++) {
+          for (let x = 0; x < colCount; x++) {
+            const cell = gridData[y][x];
+
+            // 色設定
+            ctx.fillStyle = `rgba(${cell.r}, ${cell.g}, ${cell.b}, ${
+              cell.a / 255
+            })`;
+
+            // セルを描画（拡大サイズで描画）
+            ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+          }
+        }
+
+        // グリッド線描画
+        if (showGridLines) {
+          ctx.strokeStyle = "rgba(200, 200, 200, 0.8)";
+          ctx.lineWidth = 1;
+
+          // 縦線
+          for (let x = 0; x <= colCount; x++) {
+            ctx.beginPath();
+            ctx.moveTo(x * pixelSize - 0.5, 0);
+            ctx.lineTo(x * pixelSize - 0.5, rowCount * pixelSize);
+            ctx.stroke();
+          }
+
+          // 横線
+          for (let y = 0; y <= rowCount; y++) {
+            ctx.beginPath();
+            ctx.moveTo(0, y * pixelSize - 0.5);
+            ctx.lineTo(colCount * pixelSize, y * pixelSize - 0.5);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // グリッドサイズレンダリング
+      function renderGridMethod(
+        ctx,
+        gridData,
+        rowCount,
+        colCount,
+        outputWidth,
+        outputHeight,
+        showGridLines
+      ) {
+        // セルサイズを計算（出力サイズに合わせて調整）
+        const cellWidth = outputWidth / colCount;
+        const cellHeight = outputHeight / rowCount;
+
+        // グリッドデータの描画
+        for (let y = 0; y < rowCount; y++) {
+          for (let x = 0; x < colCount; x++) {
+            const cell = gridData[y][x];
+
+            // 色設定
+            ctx.fillStyle = `rgba(${cell.r}, ${cell.g}, ${cell.b}, ${
+              cell.a / 255
+            })`;
+
+            // セルを描画
+            ctx.fillRect(x * cellWidth, y * cellHeight, cellWidth, cellHeight);
+          }
+        }
+
+        // グリッド線描画
+        if (showGridLines) {
+          ctx.strokeStyle = "rgba(200, 200, 200, 0.8)";
+          ctx.lineWidth = 1;
+
+          // 縦線
+          for (let x = 0; x <= colCount; x++) {
+            ctx.beginPath();
+            ctx.moveTo(x * cellWidth - 0.5, 0);
+            ctx.lineTo(x * cellWidth - 0.5, outputHeight);
+            ctx.stroke();
+          }
+
+          // 横線
+          for (let y = 0; y <= rowCount; y++) {
+            ctx.beginPath();
+            ctx.moveTo(0, y * cellHeight - 0.5);
+            ctx.lineTo(outputWidth, y * cellHeight - 0.5);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // 画像ダウンロード関数
+      function downloadRenderedImage(windowId) {
+        const windowState = getWindowState(windowId);
+        if (
+          !windowState ||
+          !windowState.renderData ||
+          !windowState.renderData.canvas
+        ) {
+          alert(
+            "レンダリング画像がありません。先にレンダリングを実行してください。"
+          );
+          return;
+        }
+
+        const canvas = windowState.renderData.canvas;
+
+        try {
+          // アンカータグを作成
+          const link = document.createElement("a");
+
+          // 画像のタイプを設定（透明背景の場合はPNG、そうでない場合はJPG）
+          const transparentBg = document.getElementById(
+            `transparent-bg-${windowId}`
+          ).checked;
+          const mimeType = transparentBg ? "image/png" : "image/jpeg";
+          const fileExt = transparentBg ? "png" : "jpg";
+
+          // データURLを生成
+          link.href = canvas.toDataURL(mimeType, 0.9);
+
+          // ファイル名を設定
+          link.download = `dot_art_${windowId}_${new Date().getTime()}.${fileExt}`;
+
+          // クリックイベントをトリガー
+          document.body.appendChild(link);
+          link.click();
+
+          // クリーンアップ
+          document.body.removeChild(link);
+        } catch (error) {
+          console.error("ダウンロードエラー:", error);
+          alert(`画像のダウンロード中にエラーが発生しました: ${error.message}`);
+        }
+      }
+
+      //#endregion レンダリングパネル
+
+      // 新規グリッドボタンにイベントリスナーを追加
+      document
+        .getElementById("newGridButton")
+        .addEventListener("click", createNewWindow);
+
+      // ツールボタンのセットアップ
+      setupToolButtons();
+
+      // カラーピッカーのセットアップ
+      setupColorPicker();
+
+      // 初期ウィンドウを作成
+      createNewWindow();
 
       // 画像入力機能をセットアップ
       function setupAllWindows() {
